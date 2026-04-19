@@ -1,0 +1,534 @@
+{
+  "info": {
+    "name": "Restaurant Management API",
+    "description": "Coleção de testes para a API de gestão de restaurantes — POSTech Fase 01.\n\n**Ordem de execução recomendada:** execute as requests de cima para baixo.\n1. As requests de cadastro são públicas (sem token).\n2. O 'Login para obter token' salva o JWT na variável {{token}}.\n3. Todos os demais endpoints usam automaticamente {{token}} via header Authorization.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "restaurant-management-fase01"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Cadastro (endpoints públicos)",
+      "item": [
+        {
+          "name": "Cadastrar Cliente (sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Retorna ID e userType', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.id).to.not.be.undefined;",
+                  "  pm.expect(body.userType).to.equal('CLIENT');",
+                  "  pm.collectionVariables.set('userId', body.id);",
+                  "});",
+                  "pm.test('Nao retorna senha', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.password).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"João da Silva\",\n  \"email\": \"joao@email.com\",\n  \"login\": \"joao.silva\",\n  \"password\": \"senha123\",\n  \"userType\": \"CLIENT\",\n  \"address\": {\n    \"street\": \"Rua das Flores\",\n    \"number\": \"123\",\n    \"city\": \"São Paulo\",\n    \"zipCode\": \"01310-100\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Cadastrar Dono de Restaurante (sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('userType é RESTAURANT_OWNER', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.userType).to.equal('RESTAURANT_OWNER');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria Restaurante\",\n  \"email\": \"maria@restaurante.com\",\n  \"login\": \"maria.rest\",\n  \"password\": \"senha456\",\n  \"userType\": \"RESTAURANT_OWNER\",\n  \"address\": {\n    \"street\": \"Av. Paulista\",\n    \"number\": \"1000\",\n    \"city\": \"São Paulo\",\n    \"zipCode\": \"01311-100\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Cadastrar usuário - E-mail duplicado (erro 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('ProblemDetail RFC 7807', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.equal(409);",
+                  "  pm.expect(body.title).to.equal('E-mail já cadastrado');",
+                  "  pm.expect(body.detail).to.include('joao@email.com');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outro João\",\n  \"email\": \"joao@email.com\",\n  \"login\": \"outro.joao\",\n  \"password\": \"senha123\",\n  \"userType\": \"CLIENT\",\n  \"address\": {\n    \"street\": \"Rua B\",\n    \"number\": \"1\",\n    \"city\": \"SP\",\n    \"zipCode\": \"00000-000\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Cadastrar usuário - Campos obrigatórios faltando (erro 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('ProblemDetail com fieldErrors', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.equal(422);",
+                  "  pm.expect(body.title).to.equal('Erro de validação');",
+                  "  pm.expect(body.fieldErrors).to.not.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"incompleto@email.com\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Autenticação",
+      "item": [
+        {
+          "name": "Login válido - obtém token JWT (sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna token JWT', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.token).to.not.be.undefined;",
+                  "  pm.expect(body.tokenType).to.equal('Bearer');",
+                  "  pm.expect(body.login).to.equal('joao.silva');",
+                  "  pm.collectionVariables.set('token', body.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"joao.silva\",\n  \"password\": \"senha123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login inválido - usuário inexistente (erro 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('ProblemDetail RFC 7807', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.equal(401);",
+                  "  pm.expect(body.title).to.equal('Credenciais inválidas');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"usuario.inexistente\",\n  \"password\": \"qualquerSenha\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login inválido - senha incorreta (erro 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('ProblemDetail retornado', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.equal(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"joao.silva\",\n  \"password\": \"senhaErrada\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Busca de Usuários (requer token)",
+      "item": [
+        {
+          "name": "Buscar usuário por ID (sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ID e lastModifiedDate presentes', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.id).to.equal(pm.collectionVariables.get('userId'));",
+                  "  pm.expect(body.lastModifiedDate).to.not.be.undefined;",
+                  "  pm.expect(body.password).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Buscar usuário por ID - Não encontrado (erro 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('ProblemDetail RFC 7807', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.equal(404);",
+                  "  pm.expect(body.title).to.equal('Usuário não encontrado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/users/00000000-0000-0000-0000-000000000000"
+          }
+        },
+        {
+          "name": "Buscar usuários por nome (sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna lista', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.be.an('array');",
+                  "  pm.expect(body.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?name=João",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"],
+              "query": [{ "key": "name", "value": "João" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Atualização de Dados (requer token)",
+      "item": [
+        {
+          "name": "Atualizar dados do usuário (sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Dados atualizados', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.name).to.equal('João da Silva Atualizado');",
+                  "  pm.expect(body.lastModifiedDate).to.not.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"João da Silva Atualizado\",\n  \"email\": \"joao.atualizado@email.com\",\n  \"login\": \"joao.silva\",\n  \"address\": {\n    \"street\": \"Rua Nova\",\n    \"number\": \"456\",\n    \"city\": \"Rio de Janeiro\",\n    \"zipCode\": \"20040-020\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Atualizar dados - campos inválidos (erro 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('ProblemDetail com fieldErrors', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.fieldErrors).to.not.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"email-invalido\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Troca de Senha (requer token)",
+      "item": [
+        {
+          "name": "Trocar senha - Senha atual incorreta (erro 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Mensagem de erro correta', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.detail).to.include('Senha atual incorreta');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}/password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"senhaErrada\",\n  \"newPassword\": \"novaSenha456\",\n  \"confirmNewPassword\": \"novaSenha456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Trocar senha - Confirmação não confere (erro 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Mensagem sobre confirmacao', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.detail).to.include('não conferem');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}/password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"senha123\",\n  \"newPassword\": \"novaSenha456\",\n  \"confirmNewPassword\": \"senhasDiferentes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Trocar senha (sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}/password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"senha123\",\n  \"newPassword\": \"novaSenha456\",\n  \"confirmNewPassword\": \"novaSenha456\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Acesso sem token (erro 401)",
+      "item": [
+        {
+          "name": "Acessar endpoint protegido sem token (erro 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('ProblemDetail RFC 7807', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.equal(401);",
+                  "  pm.expect(body.title).to.equal('Não autorizado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Exclusão (requer token)",
+      "item": [
+        {
+          "name": "Excluir usuário (sucesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Excluir usuário - Não encontrado (erro 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/users/00000000-0000-0000-0000-000000000000"
+          }
+        }
+      ]
+    }
+  ]
+}
